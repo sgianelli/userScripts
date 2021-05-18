@@ -76,10 +76,31 @@
       </g>
     </svg>`;
 
-  const BASE_PATH = '';
+  const BASE_PATH = "";
+  const PR_SELECTOR = ".file-header .Link--primary";
+
+  const observeDOM = (() => {
+    const MutationObserver =
+      window.MutationObserver || window.WebKitMutationObserver;
+
+    return function (obj, callback) {
+      if (obj == null || obj.nodeType !== 1) {
+        return;
+      }
+
+      if (MutationObserver) {
+        const mutationObserver = new MutationObserver(callback);
+        mutationObserver.observe(obj, { childList: true, subtree: true });
+        return mutationObserver;
+      } else if (window.addEventListener) {
+        obj.addEventListener("DOMNodeInserted", callback, false);
+        obj.addEventListener("DOMNodeRemoved", callback, false);
+      }
+    };
+  })();
 
   function vscodeLink(path) {
-      return `vscode://file/${BASE_PATH}/${path}`;
+    return `vscode://file/${BASE_PATH}/${path}`;
   }
 
   const contentWrap = document.createElement("div");
@@ -87,48 +108,58 @@
 
   function init() {
     const goToFile = $("a[data-hotkey='t']");
-            if (goToFile && !$(".ghiv-link")) {
-            const margin = goToFile.classList.contains("mr-2") ? "mr-2" : "ml-2";
-            const re = /blob\/\w+\/(.*)/i;
-            const matches = window.location.pathname.match(re);
-            if (matches.length < 2) {
-                return;
-            }
-            const link = make({
-                el: "a",
-                className: `ghiv-link btn ${margin} tooltipped tooltipped-n`,
-                attrs: {
-                    href: vscodeLink(matches[1]),
-                    "aria-label": "Open this repo in VS Code using github1s"
-                },
-                html: vsCodeIcon
-            });
-            goToFile.before(link);
+    if (goToFile && !$(".ghiv-link")) {
+      const margin = goToFile.classList.contains("mr-2") ? "mr-2" : "ml-2";
+      const re = /blob\/\w+\/(.*)/i;
+      const matches = window.location.pathname.match(re);
+      if (matches.length < 2) {
+        return;
+      }
+      const link = make({
+        el: "a",
+        className: `ghiv-link btn ${margin} tooltipped tooltipped-n`,
+        attrs: {
+          href: vscodeLink(matches[1]),
+          "aria-label": "Open this repo in VS Code using github1s",
+        },
+        html: vsCodeIcon,
+      });
+      goToFile.before(link);
+    }
+    const prFiles = document.querySelectorAll(PR_SELECTOR);
+    if (prFiles && prFiles.length) {
+      prFiles.forEach((prFile) => {
+        let size = [14, 14];
+        let styles = "text-decoration: none;";
+        if (prFile.classList.contains("text-small")) {
+          size = [12, 12];
+          styles = `text-decoration: none; display: inline-flex; justify-content: center; align-items: center; margin-left: -10px;`;
         }
-        const prFiles = document.querySelectorAll(".file-header a");
-        if (prFiles && prFiles.length) {
-            prFiles.forEach(prFile => {
-                let size = [14, 14];
-                let styles = 'text-decoration: none;';
-                if (prFile.classList.contains('text-small')) {
-                    size = [12, 12];
-                    styles = `text-decoration: none; display: inline-flex; justify-content: center; align-items: center; margin-left: -10px;`;
-                }
-                const link = make({
-                    el: "a",
-                    className: `js-clipboard-copy zeroclipboard-link color-text-secondary`,
-                    attrs: {
-                        style: styles,
-                        href: vscodeLink(prFile.innerText),
-                        "aria-label": "Open this repo in VS Code using github1s"
-                    },
-                    html: copyIcon(size[0], size[1]),
-                });
-                prFile.after(link);
-            });
-        }
+        const link = make({
+          el: "a",
+          className: `js-clipboard-copy zeroclipboard-link color-text-secondary`,
+          attrs: {
+            style: styles,
+            href: vscodeLink(prFile.innerText),
+            "aria-label": "Open this repo in VS Code using github1s",
+          },
+          html: copyIcon(size[0], size[1]),
+        });
+        prFile.after(link);
+      });
+    }
   }
 
+  let currentPrFiles = document.querySelectorAll(PR_SELECTOR).length;
+
+  observeDOM($("div#files"), function (m) {
+    const newPrFiles = document.querySelectorAll(PR_SELECTOR).length;
+    const loadedFiles = newPrFiles != currentPrFiles;
+    currentPrFiles = newPrFiles;
+    if (loadedFiles) {
+      init();
+    }
+  });
   on(document, "ghmo:container pjax:end", init);
   init();
 })();
