@@ -127,8 +127,11 @@
       goToFile.before(link);
     }
     const prFiles = document.querySelectorAll(PR_SELECTOR);
-    if (prFiles && prFiles.length) {
+    if (prFiles != null && prFiles.length) {
       prFiles.forEach((prFile) => {
+          if (prFile.nextElementSibling.classList.contains('sgianelli-open-in-vscode')) {
+              return;
+          }
         let size = [14, 14];
         let styles = "text-decoration: none;";
         if (prFile.classList.contains("text-small")) {
@@ -137,7 +140,7 @@
         }
         const link = make({
           el: "a",
-          className: `js-clipboard-copy zeroclipboard-link color-text-secondary`,
+          className: `js-clipboard-copy zeroclipboard-link color-text-secondary sgianelli-open-in-vscode`,
           attrs: {
             style: styles,
             href: vscodeLink(prFile.innerText),
